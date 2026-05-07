@@ -101,6 +101,9 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>QR Inventory Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -123,53 +126,81 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
     <script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
 </head>
 
-<body class="bg-slate-950 text-slate-100 min-h-screen">
+<body class="bg-neutral-950 text-slate-100 min-h-screen">
     <div class="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
         <div class="mx-auto max-w-6xl">
             <header class="mb-8 text-center">
-                <p class="text-orange-400 uppercase tracking-[0.3em] text-sm font-semibold">QR Code Inventory</p>
-                <h1 class="mt-4 text-4xl sm:text-5xl font-bold tracking-tight">Simple Scan-to-Track Inventory</h1>
-                <p class="mt-3 text-slate-400 max-w-2xl mx-auto">Use your camera to scan QR items and save them
-                    instantly. The list updates automatically and stores history in SQLite.</p>
+                <h1 class="mt-4 text-4xl sm:text-5xl font-bold tracking-tight">HYT Business Center IT Assets</h1>
+                <p class="mt-3 text-neutral-400 max-w-2xl mx-auto">Scan QR items and save them
+                    instantly. The list updates automatically and stores history.</p>
             </header>
 
             <main class="grid gap-8">
-                <aside
-                    class="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glass backdrop-blur-xl">
-                    <div class="rounded-3xl border border-orange-500/20 bg-slate-900/80 p-5">
-                        <h2 class="text-2xl font-semibold">Recent Scans</h2>
-                        <p class="mt-2 text-slate-400">History of items scanned during previous sessions.</p>
-                    </div>
+                <aside class="rounded-3xl border border-neutral-800 bg-neutral-950 p-6 shadow-glass">
+                    <div class="space-y-5">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <input type="text" placeholder="Filter emails..."
+                                class="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-500 outline-none sm:max-w-md" />
+                            <!-- <button type="button"
+                                class="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-neutral-200">
+                                Columns
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-icon lucide-trash">
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                                    <path d="M3 6h18" />
+                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                </svg>
+                            </button> -->
+                        </div>
 
-                    <div class="overflow-hidden rounded-3xl border border-white/10 bg-slate-900/80">
-                        <table class="min-w-full divide-y divide-slate-800 text-left text-sm">
-                            <thead class="bg-slate-950/90 text-slate-300">
-                                <tr>
-                                    
-                                    <th class="px-4 py-3 font-medium">Item</th>
-                                    <th class="px-4 py-3 font-medium">Qty</th>
-                                    <th class="px-4 py-3 font-medium">Updated</th>
-                                </tr>
-                            </thead>
-                            <tbody id="scanList" class="divide-y divide-slate-800 bg-slate-900 text-slate-200"></tbody>
-                        </table>
+                        <div class="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950">
+                            <table class="min-w-full text-left text-sm">
+                                <thead class="border-b border-neutral-800 text-neutral-300">
+                                    <tr>
+                                        <th class="w-15 px-3 py-3">
+                                            <input
+                                                type="checkbox"
+
+                                                class="checkbox border-neutral-100 rounded-md bg-neutral-900 checked:border-neutral-900 checked:bg-neutral-200 checked:text-neutral-900 p-1 checkbox-sm" />
+                                        </th>
+                                        <th class="px-3 py-3 font-medium">Name</th>
+                                        <th class="px-3 py-3 font-medium">Qty</th>
+                                        <th class="px-3 py-3 font-medium">Updated</th>
+                                        <th class="w-12 px-3 py-3"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scanList" class="divide-y divide-neutral-800 text-neutral-100">
+
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="flex flex-col gap-3 text-sm text-neutral-400 sm:flex-row sm:items-center sm:justify-between">
+                            <p>0 of 5 row(s) selected.</p>
+                            <div class="flex items-center gap-2">
+                                <button type="button"
+                                    class="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-2 text-neutral-500">Previous</button>
+                                <button type="button"
+                                    class="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-2 text-neutral-500">Next</button>
+                            </div>
+                        </div>
                     </div>
                 </aside>
             </main>
         </div>
     </div>
 
-    <div id="scanModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 px-4 py-8">
-        <div class="w-full max-w-xl rounded-[2rem] border border-orange-500/25 bg-slate-900/95 p-8 text-center shadow-glass transition duration-300 ease-out transform opacity-0 scale-95"
+    <div id="scanModal" class="fixed inset-0 z-50 hidden  items-center justify-center bg-neutral-900/80 px-4 py-8">
+        <div class="w-full max-w-xl rounded-2xl border border-neutral-800 bg-neutral-900 p-8 text-center shadow-glass transition duration-300 ease-out transform scale-95"
             data-modal-content>
-            <p id="modalLabel" class="text-sm uppercase tracking-[0.3em] text-orange-400">Scan Success</p>
+            <p id="modalLabel" class="text-sm uppercase tracking-[0.3em] text-neutral-400">Scan Success!</p>
             <h2 id="modalItem" class="mt-5 text-4xl font-bold text-white">Item Name</h2>
             <p id="modalTime" class="mt-3 text-slate-300">Scanned at 10:30 AM</p>
             <div id="modalActions" class="mt-8 flex items-center justify-center gap-3">
-                <button id="saveModal"
-                    class="inline-flex items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/70">Save</button>
+
                 <button id="cancelModal"
-                    class="inline-flex items-center justify-center rounded-full bg-slate-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400/70">Cancel</button>
+                    class="inline-flex items-center justify-center rounded-full  px-6 py-3 text-sm font-semibold text-neutral-400 transition focus:outline-none focus:ring-2 focus:ring-slate-400/70">Cancel</button>
+                <button id="saveModal"
+                    class="inline-flex items-center justify-center rounded-full bg-neutral-200 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-neutral-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/70">Save</button>
                 <button id="closeModal"
                     class="hidden inline-flex items-center justify-center rounded-full bg-orange-500 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-500/70">Close</button>
             </div>
@@ -213,13 +244,17 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
 
         function formatTime(dateString) {
             const date = new Date(dateString.replace(' ', 'T'));
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
         }
 
         function openModal(item, scannedAt) {
             modalItem.textContent = item;
             modalTime.textContent = `Scanned at ${formatTime(scannedAt)}`;
             scanModal.classList.remove('hidden');
+            scanModal.classList.add('flex');
             requestAnimationFrame(() => {
                 modalContent.classList.remove('opacity-0', 'scale-95');
                 modalContent.classList.add('opacity-100', 'scale-100');
@@ -265,10 +300,19 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
             if (!Array.isArray(items)) items = [];
             scanList.innerHTML = items.map(item => {
                 return `
-                    <tr class="transition hover:bg-slate-800/80">
+                    <tr class="transition hover:bg-neutral-900/80">
+                     <td class="px-3 py-3"> <input
+                                                type="checkbox"
+                                                
+                                                class="checkbox border-indigo-600 bg-neutral-900 checked:border-neutral-900 checked:bg-neutral-200 rounded-md  checked:text-neutral-900 p-1 checkbox-sm" /></td>
                         <td class="px-4 py-4 font-medium text-white">${escapeHtml(item.item_name)}</td>
                         <td class="px-4 py-4 text-slate-300">${escapeHtml(item.quantity ?? 0)}</td>
-                        <td class="px-4 py-4 text-slate-400">${formatTime(item.updated_at)}</td>
+                        <td class="px-4 py-4 text-neutral-400">${formatTime(item.updated_at)}</td>
+                         <td class="px-3 py-3">
+                                            <button type="button" class="text-neutral-400 hover:text-neutral-200">
+                                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-icon lucide-trash"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>   
+                                            </button>
+                                        </td>
                     </tr>
                 `;
             }).join('');
@@ -302,7 +346,9 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
                 formData.append('id', itemCode);
                 const response = await fetch(`inventory/item.php?id=${encodeURIComponent(itemCode)}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: formData.toString(),
                 });
                 const data = await response.json();
