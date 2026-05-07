@@ -57,7 +57,7 @@ $normalizedItemCode = strtoupper($itemCode);
 
 if ($method === 'GET' && $normalizedItemCode !== '') {
     header('Content-Type: text/html; charset=utf-8');
-    header('Location: ../index.php?pending_id=' . rawurlencode($normalizedItemCode));
+    header('Location: /?pending_id=' . rawurlencode($normalizedItemCode));
     exit;
 }
 
