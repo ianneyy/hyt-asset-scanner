@@ -1,7 +1,17 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 
-$dbFile = dirname(__DIR__) . '/inventory.db';
+function resolveDbFilePath(): string
+{
+    $isVercel = getenv('VERCEL') !== false || getenv('NOW_REGION') !== false;
+    if ($isVercel) {
+        return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'ims_inventory.db';
+    }
+
+    return dirname(__DIR__) . '/inventory.db';
+}
+
+$dbFile = resolveDbFilePath();
 $db = null;
 $usePdo = false;
 

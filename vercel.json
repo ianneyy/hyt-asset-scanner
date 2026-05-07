@@ -1,13 +1,20 @@
 {
   "version": 2,
   "functions": {
-    "api/index.php": {
+    "index.php": {
+      "runtime": "vercel-php@0.9.0"
+    },
+    "inventory/item.php": {
       "runtime": "vercel-php@0.9.0"
     }
   },
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "/inventory/item.php",
+      "dest": "/inventory/item.php"
+    },
+    {
+      "src": "/",
       "dest": "/index.php"
     }
   ]
