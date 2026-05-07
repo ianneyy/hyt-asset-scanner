@@ -1,5 +1,6 @@
 ﻿<?php
 // SQLite setup and AJAX API handler for scanned inventory items.
+date_default_timezone_set('Asia/Manila');
 function resolveDbFilePath(): string
 {
     $isVercel = getenv('VERCEL') !== false || getenv('NOW_REGION') !== false;
@@ -202,7 +203,7 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
                 <button id="saveModal"
                     class="inline-flex items-center justify-center rounded-full bg-neutral-200 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-neutral-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/70">Save</button>
                 <button id="closeModal"
-                    class="hidden inline-flex items-center justify-center rounded-full bg-orange-500 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-500/70">Close</button>
+                    class="hidden inline-flex items-center justify-center rounded-full bg-neutral-200 px-6 py-3 text-sm font-semibold text-neutral-900 transition hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-neutral-200/70">Close</button>
             </div>
         </div>
     </div>
@@ -353,7 +354,12 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
                 });
                 const data = await response.json();
                 if (data.success) {
-                    openSuccessModal(`${data.item.item_name} (${data.item.item_code})`, data.item.updated_at);
+                    const itemName = String(data.item.item_name || '').trim();
+                    const itemCode = String(data.item.item_code || '').trim();
+                    const modalTitle = itemName && itemCode && itemName.toUpperCase() !== itemCode.toUpperCase()
+                        ? `${itemName} - ${itemCode}`
+                        : (itemName || itemCode);
+                    openSuccessModal(modalTitle, data.item.updated_at);
                     renderScanList(data.items);
                     setScanStatus(`Scanned ${data.item.item_code} successfully.`, 'success');
                     if (itemCodeInput) {
