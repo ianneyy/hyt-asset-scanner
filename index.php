@@ -124,7 +124,6 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
             }
         }
     </script>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
 </head>
 
 <body class="bg-neutral-950 text-slate-100 min-h-screen">
@@ -135,12 +134,27 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
                 <p class="mt-3 text-neutral-400 max-w-2xl mx-auto">Scan QR items and save them
                     instantly. The list updates automatically and stores history.</p>
             </header>
+            <div class="absolute bottom-4 right-4">
+                <!-- a focusable div with tabindex is necessary to work on all browsers. role="button" is necessary for accessibility -->
+                <div id="cameraScanBtn" role="button" tabindex="0" class="btn btn-lg btn-circle btn-primary"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scan-qr-code-icon lucide-scan-qr-code">
+                        <path d="M17 12v4a1 1 0 0 1-1 1h-4" />
+                        <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                        <path d="M17 8V7" />
+                        <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                        <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                        <path d="M7 17h.01" />
+                        <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                        <rect x="7" y="7" width="5" height="5" rx="1" />
+                    </svg></div>
 
-            <main class="grid gap-8">
-                <aside class="rounded-3xl border border-neutral-800 bg-neutral-950 p-6 shadow-glass">
+
+            </div>
+
+            <main class="w-full">
+                <aside class="w-full rounded-3xl lg:border border-neutral-800 bg-neutral-950 p-0 lg:p-6 shadow-glass">
                     <div class="space-y-5">
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <input type="text" placeholder="Filter emails..."
+                            <input type="text" placeholder="Filter assets..."
                                 class="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-500 outline-none sm:max-w-md" />
                             <!-- <button type="button"
                                 class="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-neutral-200">
@@ -203,7 +217,29 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
                 <button id="saveModal"
                     class="inline-flex items-center justify-center rounded-full bg-neutral-200 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-neutral-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/70">Save</button>
                 <button id="closeModal"
-                    class="hidden inline-flex items-center justify-center rounded-full bg-neutral-200 px-6 py-3 text-sm font-semibold text-neutral-900 transition hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-neutral-200/70">Close</button>
+                    class="hidden inline-flex items-center justify-center rounded-full bg-neutral-200 px-6 py-3 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-200/70">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="cameraModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-neutral-900/80 px-4 py-8">
+        <div class="w-full max-w-xl rounded-2xl border border-neutral-800 bg-neutral-950 p-5 shadow-glass">
+            <div class="flex items-center justify-between gap-3 border-b border-neutral-800 pb-3">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.3em] text-neutral-400">Camera Scanner</p>
+                    <p class="mt-1 text-sm text-neutral-300">Point your camera at a QR code.</p>
+                </div>
+                <button id="closeCameraModal" type="button"
+                    class="inline-flex items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm font-medium text-neutral-200 hover:bg-neutral-800">
+                    Close
+                </button>
+            </div>
+            <div class="pt-4">
+                <div class="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950">
+                    <video id="cameraVideo" class="h-[60vh] w-full bg-neutral-950 object-cover sm:h-[420px]" autoplay
+                        playsinline muted></video>
+                </div>
+                <p id="cameraHint" class="mt-3 text-sm text-neutral-400"></p>
             </div>
         </div>
     </div>
@@ -222,6 +258,15 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
         const closeModal = document.getElementById('closeModal');
         const modalContent = document.querySelector('[data-modal-content]');
         const scanStatus = document.getElementById('scanStatus');
+        const cameraScanBtn = document.getElementById('cameraScanBtn');
+        const cameraModal = document.getElementById('cameraModal');
+        const closeCameraModal = document.getElementById('closeCameraModal');
+        const cameraHint = document.getElementById('cameraHint');
+        const cameraVideo = document.getElementById('cameraVideo');
+        let cameraStream = null;
+        let barcodeDetector = null;
+        let scanRafId = null;
+        let isScanning = false;
         let pendingItemCode = pendingItemCodeFromUrl || '';
 
         function setScanStatus(message, type = 'info') {
@@ -297,6 +342,110 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
             scanModal.classList.add('hidden');
         }
 
+        async function stopCameraScanner() {
+            isScanning = false;
+
+            if (scanRafId) {
+                cancelAnimationFrame(scanRafId);
+                scanRafId = null;
+            }
+
+            if (cameraVideo) {
+                cameraVideo.pause();
+                cameraVideo.srcObject = null;
+            }
+
+            if (cameraStream) {
+                for (const track of cameraStream.getTracks()) {
+                    track.stop();
+                }
+                cameraStream = null;
+            }
+        }
+
+        async function scanLoop() {
+            if (!isScanning || !barcodeDetector || !cameraVideo) return;
+            if (cameraVideo.readyState < 2) {
+                scanRafId = requestAnimationFrame(scanLoop);
+                return;
+            }
+
+            try {
+                const barcodes = await barcodeDetector.detect(cameraVideo);
+                const first = barcodes && barcodes[0];
+                const rawValue = first && (first.rawValue || first.data);
+                const code = String(rawValue || '').trim();
+                if (code) {
+                    await stopCameraScanner();
+                    if (cameraModal) cameraModal.classList.add('hidden');
+                    window.location.href = `inventory/item.php?id=${encodeURIComponent(code)}`;
+                    return;
+                }
+            } catch (e) {
+                // ignore detect errors and keep scanning
+            }
+
+            scanRafId = requestAnimationFrame(scanLoop);
+        }
+
+        async function openCameraScanner() {
+            if (!cameraModal) return;
+            cameraModal.classList.remove('hidden');
+            if (cameraHint) cameraHint.textContent = '';
+
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    if (cameraHint) cameraHint.textContent = 'Camera is not supported on this browser.';
+                    return;
+                }
+
+                await stopCameraScanner();
+
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: {
+                            ideal: 'environment'
+                        }
+                    },
+                    audio: false
+                });
+
+                if (!cameraVideo) {
+                    if (cameraHint) cameraHint.textContent = 'Video element not found.';
+                    return;
+                }
+
+                cameraVideo.srcObject = cameraStream;
+                await cameraVideo.play();
+
+                if ('BarcodeDetector' in window) {
+                    try {
+                        barcodeDetector = new BarcodeDetector({
+                            formats: ['qr_code']
+                        });
+                        isScanning = true;
+                        scanRafId = requestAnimationFrame(scanLoop);
+                        if (cameraHint) cameraHint.textContent = 'Scanning...';
+                    } catch (e) {
+                        barcodeDetector = null;
+                        if (cameraHint) cameraHint.textContent = 'Camera is open. QR scanning not supported on this browser.';
+                    }
+                } else {
+                    if (cameraHint) cameraHint.textContent = 'Camera is open. QR scanning not supported on this browser.';
+                }
+            } catch (error) {
+                console.error('Camera error:', error);
+                if (cameraHint) cameraHint.textContent = 'Camera access blocked or unavailable. Please allow camera permission.';
+            }
+        }
+
+        async function closeCameraScanner() {
+            await stopCameraScanner();
+            if (cameraModal) {
+                cameraModal.classList.add('hidden');
+            }
+        }
+
         function renderScanList(items) {
             if (!Array.isArray(items)) items = [];
             scanList.innerHTML = items.map(item => {
@@ -356,9 +505,9 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
                 if (data.success) {
                     const itemName = String(data.item.item_name || '').trim();
                     const itemCode = String(data.item.item_code || '').trim();
-                    const modalTitle = itemName && itemCode && itemName.toUpperCase() !== itemCode.toUpperCase()
-                        ? `${itemName} - ${itemCode}`
-                        : (itemName || itemCode);
+                    const modalTitle = itemName && itemCode && itemName.toUpperCase() !== itemCode.toUpperCase() ?
+                        `${itemName} - ${itemCode}` :
+                        (itemName || itemCode);
                     openSuccessModal(modalTitle, data.item.updated_at);
                     renderScanList(data.items);
                     setScanStatus(`Scanned ${data.item.item_code} successfully.`, 'success');
@@ -409,6 +558,25 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
             });
         }
         closeModal.addEventListener('click', closeModalWindow);
+        if (cameraScanBtn) {
+            cameraScanBtn.addEventListener('click', openCameraScanner);
+            cameraScanBtn.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openCameraScanner();
+                }
+            });
+        }
+        if (closeCameraModal) {
+            closeCameraModal.addEventListener('click', closeCameraScanner);
+        }
+        if (cameraModal) {
+            cameraModal.addEventListener('click', (event) => {
+                if (event.target === cameraModal) {
+                    closeCameraScanner();
+                }
+            });
+        }
         saveModal.addEventListener('click', async () => {
             if (!pendingItemCode) {
                 closeModalWindow();
