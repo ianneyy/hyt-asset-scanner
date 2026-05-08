@@ -349,6 +349,30 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
             scanModal.classList.add('hidden');
         }
 
+        function normalizeScannedItemCode(rawValue) {
+            const rawText = String(rawValue || '').trim();
+            if (!rawText) return '';
+
+            const upperRawText = rawText.toUpperCase();
+            const directMatch = upperRawText.match(/^[A-Z0-9_-]{1,50}$/);
+            if (directMatch) return directMatch[0];
+
+            try {
+                const parsedUrl = new URL(rawText);
+                const paramId = (parsedUrl.searchParams.get('id') || '').trim().toUpperCase();
+                if (/^[A-Z0-9_-]{1,50}$/.test(paramId)) return paramId;
+                const pathnamePart = (parsedUrl.pathname || '').split('/').pop() || '';
+                const pathMatch = pathnamePart.toUpperCase().match(/[A-Z0-9_-]{1,50}/);
+                if (pathMatch) return pathMatch[0];
+            } catch (e) {
+                const queryMatch = upperRawText.match(/[?&]ID=([A-Z0-9_-]{1,50})/);
+                if (queryMatch && queryMatch[1]) return queryMatch[1];
+            }
+
+            const fallbackMatch = upperRawText.match(/[A-Z0-9_-]{1,50}/);
+            return fallbackMatch ? fallbackMatch[0] : '';
+        }
+
         async function stopCameraScanner() {
             isScanning = false;
 
@@ -381,7 +405,7 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
                 const barcodes = await barcodeDetector.detect(cameraVideo);
                 const first = barcodes && barcodes[0];
                 const rawValue = first && (first.rawValue || first.data);
-                const code = String(rawValue || '').trim();
+                const code = normalizeScannedItemCode(rawValue);
                 if (code) {
                     await stopCameraScanner();
                     if (cameraModal) cameraModal.classList.add('hidden');
@@ -421,7 +445,7 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
                 const currentTime = Date.now();
                 if (currentTime - lastScanTime >= scanDelay) {
                     lastScanTime = currentTime;
-                    const scannedCode = String(code.data).trim();
+                    const scannedCode = normalizeScannedItemCode(code.data);
                     if (scannedCode !== '') {
                         await stopCameraScanner();
                         if (cameraModal) cameraModal.classList.add('hidden');
