@@ -104,6 +104,7 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -263,10 +264,16 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
         const closeCameraModal = document.getElementById('closeCameraModal');
         const cameraHint = document.getElementById('cameraHint');
         const cameraVideo = document.getElementById('cameraVideo');
+        const qrScanCanvas = document.createElement('canvas');
+        const qrScanContext = qrScanCanvas.getContext('2d', {
+            willReadFrequently: true
+        });
         let cameraStream = null;
         let barcodeDetector = null;
         let scanRafId = null;
         let isScanning = false;
+        let lastScanTime = 0;
+        const scanDelay = 5000;
         let pendingItemCode = pendingItemCodeFromUrl || '';
 
         function setScanStatus(message, type = 'info') {
@@ -388,6 +395,45 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
             scanRafId = requestAnimationFrame(scanLoop);
         }
 
+        async function scanLoopWithJsQr() {
+            if (!isScanning || !cameraVideo || !qrScanContext || typeof jsQR !== 'function') return;
+            if (cameraVideo.readyState < 2) {
+                scanRafId = requestAnimationFrame(scanLoopWithJsQr);
+                return;
+            }
+
+            const videoWidth = cameraVideo.videoWidth || 0;
+            const videoHeight = cameraVideo.videoHeight || 0;
+            if (!videoWidth || !videoHeight) {
+                scanRafId = requestAnimationFrame(scanLoopWithJsQr);
+                return;
+            }
+
+            if (qrScanCanvas.width !== videoWidth || qrScanCanvas.height !== videoHeight) {
+                qrScanCanvas.width = videoWidth;
+                qrScanCanvas.height = videoHeight;
+            }
+
+            qrScanContext.drawImage(cameraVideo, 0, 0, videoWidth, videoHeight);
+            const imageData = qrScanContext.getImageData(0, 0, videoWidth, videoHeight);
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+            if (code && code.data) {
+                const currentTime = Date.now();
+                if (currentTime - lastScanTime >= scanDelay) {
+                    lastScanTime = currentTime;
+                    const scannedCode = String(code.data).trim();
+                    if (scannedCode !== '') {
+                        await stopCameraScanner();
+                        if (cameraModal) cameraModal.classList.add('hidden');
+                        window.location.href = `inventory/item.php?id=${encodeURIComponent(scannedCode)}`;
+                        return;
+                    }
+                }
+            }
+
+            scanRafId = requestAnimationFrame(scanLoopWithJsQr);
+        }
+
         async function openCameraScanner() {
             if (!cameraModal) return;
             cameraModal.classList.remove('hidden');
@@ -417,6 +463,7 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
 
                 cameraVideo.srcObject = cameraStream;
                 await cameraVideo.play();
+                lastScanTime = 0;
 
                 if ('BarcodeDetector' in window) {
                     try {
@@ -428,10 +475,23 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
                         if (cameraHint) cameraHint.textContent = 'Scanning...';
                     } catch (e) {
                         barcodeDetector = null;
-                        if (cameraHint) cameraHint.textContent = 'Camera is open. QR scanning not supported on this browser.';
+                        if (typeof jsQR === 'function' && qrScanContext) {
+                            isScanning = true;
+                            scanRafId = requestAnimationFrame(scanLoopWithJsQr);
+                            if (cameraHint) cameraHint.textContent = 'Scanning...';
+                        } else {
+                            if (cameraHint) cameraHint.textContent = 'Camera is open. QR scanning is unavailable.';
+                        }
                     }
                 } else {
-                    if (cameraHint) cameraHint.textContent = 'Camera is open. QR scanning not supported on this browser.';
+                    barcodeDetector = null;
+                    if (typeof jsQR === 'function' && qrScanContext) {
+                        isScanning = true;
+                        scanRafId = requestAnimationFrame(scanLoopWithJsQr);
+                        if (cameraHint) cameraHint.textContent = 'Scanning...';
+                    } else {
+                        if (cameraHint) cameraHint.textContent = 'Camera is open. QR scanning is unavailable.';
+                    }
                 }
             } catch (error) {
                 console.error('Camera error:', error);
