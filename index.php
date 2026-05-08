@@ -205,7 +205,7 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
         </div>
     </div>
 
-    <div id="scanModal" class="fixed inset-0 z-50 flex  items-center justify-center bg-neutral-900/80 px-4 py-8">
+    <div id="scanModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-neutral-900/80 px-4 py-8">
         <div class="w-full max-w-xl rounded-2xl border border-neutral-800 bg-neutral-900 p-8 text-center shadow-glass transition duration-300 ease-out transform scale-95"
             data-modal-content>
             <p id="modalLabel" class="text-sm uppercase tracking-[0.3em] text-neutral-400">Scan Success!</p>
@@ -336,6 +336,7 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
             cancelModal.classList.remove('hidden');
             closeModal.classList.add('hidden');
             scanModal.classList.remove('hidden');
+            scanModal.classList.add('flex');
             requestAnimationFrame(() => {
                 modalContent.classList.remove('opacity-0', 'scale-95');
                 modalContent.classList.add('opacity-100', 'scale-100');
