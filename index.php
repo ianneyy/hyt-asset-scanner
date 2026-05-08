@@ -205,7 +205,7 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
         </div>
     </div>
 
-    <div id="scanModal" class="fixed inset-0 z-50 hidden  items-center justify-center bg-neutral-900/80 px-4 py-8">
+    <div id="scanModal" class="fixed inset-0 z-50 flex  items-center justify-center bg-neutral-900/80 px-4 py-8">
         <div class="w-full max-w-xl rounded-2xl border border-neutral-800 bg-neutral-900 p-8 text-center shadow-glass transition duration-300 ease-out transform scale-95"
             data-modal-content>
             <p id="modalLabel" class="text-sm uppercase tracking-[0.3em] text-neutral-400">Scan Success!</p>
@@ -303,8 +303,14 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
             });
         }
 
+        function cleanDisplayText(raw) {
+            const text = String(raw || '').trim();
+            if (!text) return '';
+            return text.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+
         function openModal(item, scannedAt) {
-            modalItem.textContent = item;
+            modalItem.textContent = cleanDisplayText(item);
             modalTime.textContent = `Scanned at ${formatTime(scannedAt)}`;
             scanModal.classList.remove('hidden');
             scanModal.classList.add('flex');
@@ -324,7 +330,7 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
 
         function openConfirmModal(itemCode) {
             modalLabel.textContent = 'Pending Item';
-            modalItem.textContent = itemCode;
+            modalItem.textContent = cleanDisplayText(itemCode);
             modalTime.textContent = 'Save this item to local database?';
             saveModal.classList.remove('hidden');
             cancelModal.classList.remove('hidden');
@@ -539,7 +545,7 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
                                                 type="checkbox"
                                                 
                                                 class="checkbox border-indigo-600 bg-neutral-900 checked:border-neutral-900 checked:bg-neutral-200 rounded-md  checked:text-neutral-900 p-1 checkbox-sm" /></td>
-                        <td class="px-4 py-4 font-medium text-white">${escapeHtml(item.item_name)}</td>
+                        <td class="px-4 py-4 font-medium text-white">${escapeHtml(cleanDisplayText(item.item_name))}</td>
                         <td class="px-4 py-4 text-slate-300">${escapeHtml(item.quantity ?? 0)}</td>
                         <td class="px-4 py-4 text-neutral-400">${formatTime(item.updated_at)}</td>
                          <td class="px-3 py-3">
@@ -594,7 +600,7 @@ if (!preg_match('/^[A-Z0-9_-]{1,50}$/', $pendingItemCode)) {
                         (itemName || itemCode);
                     openSuccessModal(modalTitle, data.item.updated_at);
                     renderScanList(data.items);
-                    setScanStatus(`Scanned ${data.item.item_code} successfully.`, 'success');
+                    setScanStatus(`Scanned ${cleanDisplayText(data.item.item_code)} successfully.`, 'success');
                     if (itemCodeInput) {
                         itemCodeInput.value = '';
                         itemCodeInput.focus();
